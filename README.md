@@ -3,7 +3,7 @@
 ### **Quad Sequential MIDI Source for Monome Norns**
 
 
-NARF is a high-density, 4-channel MIDI sequencer inspired by the Buchla 251e. It replaces fixed-grid sequencing with **Rational Fraction Durations**, allowing for complex polyrhythms, tuplets, and "West Coast" rhythmic shifting.
+NARF is a high-density, 4-channel MIDI sequencer inspired by the Buchla 251e. NARF utilizes rational fraction durations over predictable step grids, allowing for complex polyrhythms, tuplets, and "West Coast" rhythmic shifting in the style of the 251e, the MARF, and the Orthoganol Devices ER-101. It also has built-in support for the 16n and Korg NanoKontrol2, pitch randomization per step, and keyboard pitch input per step. Global quantization is enabled from the parameters menu.
 
 NARF is a vibe coded with Google Gemini. ZORT!
 
@@ -43,18 +43,17 @@ NARF is a vibe coded with Google Gemini. ZORT!
 ##
 **3\. Parameter Guide**
 
-| Parameter | Display | Logic |
-| :---- | :---- | :---- |
-| **PITCH** | PIT | MIDI Note 0-127. (Snaps if Quantize is ON). |
-| **VELOCITY** | VEL | MIDI Velocity 0-127. |
-| **DURATION** | DUR: 3/7 | Numerator/Denominator. Based on a $1/4$ note \= 1 beat. |
-| **CC1/2 DEST** | CC1 | MIDI CC Destination number (0 \= Off). |
-| **CC1/2 VAL** | VAL | Value sent when the step triggers (0-127). |
-| **MODULATION** | MOD | Hardwired to MIDI CC \#1. |
-| **ARTICULATION** | ART | Gate length/Articulation (10% to 100% "Tie"). |
-| **LOOP TO** | LOO | Step number to jump back to. |
-| **REPEATS** | REP | Number of times to loop the jump. |
-| **PROBABILITY** | PRO | % chance the step triggers or a loop occurs. |
+| Parameter | Logic |
+| :---- | :---- |
+| **PITCH** | MIDI Note 0-127. (Snaps if Quantize is ON). |
+| **VELOCITY** | MIDI Velocity 0-127. |
+| **DURATION** | Numerator/Denominator. Based on a $1/4$ note \= 1 beat. |
+| **CC1/2 VALUE** | Value sent to CC1 or 2 when the step triggers (0-127). CC destinations are set per channel under the external Parameters menu. |
+| **MODULATION** | Hardwired to the modwheel. |
+| **ARTICULATION** | Gate length/Articulation (10% to 100% "Tie"). |
+| **LOOP TO** | Step number to jump to. |
+| **REPEATS** | Number of times to loop the jump. |
+| **PROBABILITY** | % chance the step triggers or a loop occurs. |
 
 ##
 **4\. Hardware Mappings**
@@ -64,7 +63,7 @@ NARF is a vibe coded with Google Gemini. ZORT!
 * **Faders 1–4:** Pitch (Tracks A–D)  
 * **Faders 5–8:** Velocity (Tracks A–D)  
 * **Faders 9–12:** Duration Numerator (Tracks A–D)  
-* **Faders 13–16:** Modulation (Tracks A–D)
+* **Faders 13–16:** Modulation (modwheel) (Tracks A–D)
 
 ### **Korg nanoKONTROL2**
 
@@ -79,8 +78,6 @@ NARF is a vibe coded with Google Gemini. ZORT!
 * **The Flash:** The screen will pulse white whenever a track returns to its Pattern Start point.  
 * **The \! Marker:** If the edit\_focus is on the final step of the loop, parameter labels change (e.g., PI\!) as a warning.
 
-**6\. Installation & Data**
+**6\. Save Data**
 
-1. Place narf.lua in code/narf/.  
-2. Project files are stored in dust/data/narf/ as narf\_slot\_X.data.  
-3. To switch slots, go to **PARAMS \> NARF CONFIG \> SAVE/LOAD SLOT**.
+To switch save slots, go to **PARAMS \> NARF CONFIG \> SAVE/LOAD SLOT**. The slot is shown on the screen, and can be autosaved via hotkey.

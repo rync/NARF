@@ -7,8 +7,7 @@ NARF is a high-density, 4-channel MIDI sequencer inspired by the Buchla 251e. It
 
 NARF is a vibe coded with Google Gemini. ZORT!
 
-## ---
-
+##
 **1\. Features**
 
 * **Four Independent Tracks:** A, B, C, and D, each with 99 steps.  
@@ -20,8 +19,7 @@ NARF is a vibe coded with Google Gemini. ZORT!
 * **Global Visual Feedback:** High-fidelity loop-end markers and a screen-wide "Global Flash" on resets.  
 * **Tactile Integration:** Pre-mapped for **16n Faderbank** and **Korg nanoKONTROL2**.
 
-## ---
-
+##
 **2\. Controls & Navigation**
 
 ### **Global Modifiers**
@@ -42,8 +40,7 @@ NARF is a vibe coded with Google Gemini. ZORT!
 * **K3 (Short):** Stochastic Randomize (Pitch, Velocity, Probability).  
 * **K3 (Long):** Save data to the currently active **Save Slot**.
 
-## ---
-
+##
 **3\. Parameter Guide**
 
 | Parameter | Display | Logic |
@@ -59,8 +56,7 @@ NARF is a vibe coded with Google Gemini. ZORT!
 | **REPEATS** | REP | Number of times to loop the jump. |
 | **PROBABILITY** | PRO | % chance the step triggers or a loop occurs. |
 
-## ---
-
+##
 **4\. Hardware Mappings**
 
 ### **16n Faderbank**
@@ -75,16 +71,13 @@ NARF is a vibe coded with Google Gemini. ZORT!
 * **Knobs 1–8:** Toggle Pitch/Velocity for Tracks A–D.  
 * **Faders 1–8:** Toggle Modulation/Articulation for Tracks A–D.
 
-## ---
-
+##
 **5\. Performance Cues**
 
 * **The Wall (|):** A vertical line indicates the Pattern End step set in the Params menu.  
 * **The Triangle:** A bright marker above the playhead indicates you have reached the final step of the loop.  
 * **The Flash:** The screen will pulse white whenever a track returns to its Pattern Start point.  
 * **The \! Marker:** If the edit\_focus is on the final step of the loop, parameter labels change (e.g., PI\!) as a warning.
-
-## ---
 
 **6\. Installation & Data**
 

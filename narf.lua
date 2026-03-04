@@ -43,21 +43,25 @@ local shift = false
 local show_splash = true
 local flash_level = 0 
 
-local param_names = {"PITCH", "VELOCITY", "DURATION", "CC1 DEST", "CC1 VAL", "CC2 DEST", "CC2 VAL", "MODULATION", "ARTICULATION", "GLIDE", "LOOP TO", "REPEATS", "PROB"}
+local param_names = {"PITCH", "VELOCITY", "DURATION", "CC1 VALUE", "CC2 VALUE", "MODULATION", "ARTICULATION", "GLIDE", "LOOP TO", "REPEATS", "PROBABILITY"}
 local m = midi.connect()
 
 -- 2. INITIALIZATION
 function init()
   for i = 1, 4 do
     tracks[i] = {
-      active_step = 1, is_running = false, steps = {},
-      midi_ch = i, transpose = 0, p_start = 1, p_end = 24
+      active_step = 1,
+      is_running = false,
+      is_playing_note = false, -- Add this line
+      steps = {},
+      midi_ch = i, transpose = 0, p_start = 1, p_end = 8,
+      cc1_n = 0, cc2_n = 0
     }
     init_steps(i)
   end
-  
+
   clock.run(function() clock.sleep(2.5); show_splash = false; redraw() end)
-  
+
   clock.run(function()
     while true do
       if flash_level > 0 then flash_level = flash_level - 1; redraw() end
@@ -68,22 +72,35 @@ function init()
   params:add_separator("narf_config", "NARF CONFIG")
   params:add_number("save_slot", "SAVE/LOAD SLOT", 1, 10, 1)
   params:set_action("save_slot", function(v) load_sequence(v) end)
-  
+
   params:add_option("send_clock", "SEND MIDI CLOCK", {"OFF", "ON"}, 2)
   params:add_option("rec_mode", "MIDI RECORD MODE", {"OFF", "ON"}, 1)
   params:add_option("midi_remote", "REMOTE MAPPING", {"OFF", "16n", "nKONTROL2"}, 2)
 
   for i = 1, 4 do
-    params:add_group("TRACK " .. track_names[i], 4)
+    params:add_group("TRACK " .. track_names[i], 6)
     params:add_number("midi_ch_"..i, "MIDI CHANNEL", 1, 16, i)
     params:add_number("trans_"..i, "TRANSPOSE", -24, 24, 0)
     params:add_number("start_"..i, "PATTERN START", 1, 99, 1)
     params:add_number("end_"..i, "PATTERN END", 1, 99, 24)
+    params:add_number("cc1_n_"..i, "CC1 DESTINATION", 0, 127, 0)
+    params:add_number("cc2_n_"..i, "CC2 DESTINATION", 0, 127, 0)
     params:set_action("midi_ch_"..i, function(v) tracks[i].midi_ch = v end)
     params:set_action("trans_"..i, function(v) tracks[i].transpose = v end)
     params:set_action("start_"..i, function(v) tracks[i].p_start = v end)
     params:set_action("end_"..i, function(v) tracks[i].p_end = v end)
+    params:set_action("cc1_n_"..i, function(v) tracks[i].cc1_n = v end)
+    params:set_action("cc2_n_"..i, function(v) tracks[i].cc2_n = v end)
   end
+
+  params:add_number("global_trans", "GLOBAL TRANSPOSE", -24, 24, 0)
+
+  params:add_trigger("clear_track", "CLEAR SELECTED TRACK")
+  params:set_action("clear_track", function()
+    init_steps(selected_track)
+    print("Cleared Track " .. track_names[selected_track])
+    redraw()
+  end)
 
   params:add_separator("quantize_config", "QUANTIZATION")
   params:add_option("quantize", "QUANTIZE", {"OFF", "ON"}, 1)
@@ -105,17 +122,16 @@ end
 
 function init_steps(t)
   for i = 1, 99 do
-    tracks[t].steps[i] = { 
-      pitch = 60, vel = 100, num = 1, den = 4, 
-      cc1_n = 0, cc1_v = 0, cc2_n = 0, cc2_v = 0,
-      mod = 0, artic = 0.8, glide = 0, loop_to = 0, repeats = 0, count = 0, prob = 100 
+    tracks[t].steps[i] = {
+      pitch = 60, vel = 100, num = 1, den = 4, cc1_v = 0, cc2_v = 0,
+      mod = 0, artic = 0.8, glide = 0, loop_to = 0, repeats = 0, count = 0, prob = 100
     }
   end
 end
 
 -- 3. REMOTE MIDI HANDLER
 function handle_remote_cc(cc, val, mode)
-  if mode == 2 then 
+  if mode == 2 then
     if cc >= 32 and cc <= 35 then tracks[cc-31].steps[edit_focus].pitch = val
     elseif cc >= 36 and cc <= 39 then tracks[cc-35].steps[edit_focus].vel = val
     elseif cc >= 40 and cc <= 43 then tracks[cc-39].steps[edit_focus].num = util.clamp(math.floor(val/4)+1, 1, 32)
@@ -130,29 +146,37 @@ function run_track(t_idx)
   if params:get("send_clock") == 2 then m:start() end
   while t.is_running do
     local s = t.steps[t.active_step]
-    local final_pitch = get_quantized_note(s.pitch + t.transpose)
+    local global_transpose = params:get("global_trans")
+    local final_pitch = get_quantized_note(s.pitch + t.transpose + global_transpose)
     if s.glide > 0 then m:cc(65, 127, t.midi_ch); m:cc(5, s.glide, t.midi_ch) end
-    if s.cc1_n > 0 then m:cc(s.cc1_n, s.cc1_v, t.midi_ch) end
-    if s.cc2_n > 0 then m:cc(s.cc2_n, s.cc2_v, t.midi_ch) end
+    if t.cc1_n > 0 then m:cc(t.cc1_n, s.cc1_v, t.midi_ch) end
+    if t.cc2_n > 0 then m:cc(t.cc2_n, s.cc2_v, t.midi_ch) end
     m:note_on(final_pitch, s.vel, t.midi_ch)
     m:cc(1, s.mod, t.midi_ch)
     local dur_beats = (s.num / s.den) * 4
     local total_sleep = dur_beats * clock.get_beat_sec()
     if s.artic < 1.0 then
       clock.sleep(total_sleep * s.artic); m:note_off(final_pitch, 0, t.midi_ch); clock.sleep(total_sleep * (1 - s.artic))
-    else clock.sleep(total_sleep) end
-    
+    else clock.sleep(total_sleep); m:note_off(final_pitch, 0, t.midi_ch); end
+
     local next_step = t.active_step + 1
-    if s.loop_to > 0 and s.repeats > 0 then
+    if s.loop_to > 0 and s.repeats > 0 and s.loop_to < t.p_end and s.loop_to >= t.p_start then
       if math.random(1, 100) <= s.prob then
         if s.count < s.repeats then s.count = s.count + 1; next_step = s.loop_to else s.count = 0 end
       else s.count = 0 end
     end
-    if next_step > t.p_end or next_step < t.p_start then 
-      next_step = t.p_start 
+    if next_step > t.p_end or next_step < t.p_start then
+      next_step = t.p_start
       flash_level = 4
     end
     t.active_step = next_step; redraw()
+
+
+
+    -- ... after the articulation sleep:
+    m:note_off(final_pitch, 0, t.midi_ch)
+    t.is_playing_note = false -- Note ended
+    redraw()
   end
 end
 
@@ -163,7 +187,7 @@ function enc(n, d)
   if n == 1 then
     if shift then selected_track = util.clamp(selected_track + d, 1, 4)
     else edit_focus = util.clamp(edit_focus + d, 1, 99) end
-  elseif n == 2 then 
+  elseif n == 2 then
     if param_focus == 3 then
       dur_sub_focus = dur_sub_focus + d
       if dur_sub_focus > 2 or dur_sub_focus < 1 then
@@ -177,18 +201,17 @@ function enc(n, d)
   elseif n == 3 then
     if param_focus == 1 then s.pitch = util.clamp(s.pitch + d, 0, 127)
     elseif param_focus == 2 then s.vel = util.clamp(s.vel + d, 0, 127)
-    elseif param_focus == 3 then 
+    elseif param_focus == 3 then
       if dur_sub_focus == 1 then s.num = util.clamp(s.num + d, 1, 32) else s.den = util.clamp(s.den + d, 1, 32) end
-    elseif param_focus == 4 then s.cc1_n = util.clamp(s.cc1_n + d, 0, 127)
-    elseif param_focus == 5 then s.cc1_v = util.clamp(s.cc1_v + d, 0, 127)
-    elseif param_focus == 6 then s.cc2_n = util.clamp(s.cc2_n + d, 0, 127)
-    elseif param_focus == 7 then s.cc2_v = util.clamp(s.cc2_v + d, 0, 127)
-    elseif param_focus == 8 then s.mod = util.clamp(s.mod + d, 0, 127)
-    elseif param_focus == 9 then s.artic = util.clamp(s.artic + (d * 0.05), 0.05, 1)
-    elseif param_focus == 10 then s.glide = util.clamp(s.glide + d, 0, 127)
-    elseif param_focus == 11 then s.loop_to = util.clamp(s.loop_to + d, 0, 99)
-    elseif param_focus == 12 then s.repeats = util.clamp(s.repeats + d, 0, 16)
-    elseif param_focus == 13 then s.prob = util.clamp(s.prob + (d * 5), 0, 100)
+    elseif param_focus == 4 then s.cc1_v = util.clamp(s.cc1_v + d, 0, 127)
+    elseif param_focus == 5 then s.cc2_v = util.clamp(s.cc2_v + d, 0, 127)
+    elseif param_focus == 6 then s.mod = util.clamp(s.mod + d, 0, 127)
+    elseif param_focus == 7 then s.artic = util.clamp(s.artic + (d * 0.05), 0.05, 1)
+    elseif param_focus == 8 then s.glide = util.clamp(s.glide + d, 0, 127)
+    elseif param_focus == 9 then s.loop_to = util.clamp(s.loop_to + d, 0, 99)
+    elseif param_focus == 10 then s.repeats = util.clamp(s.repeats + d, 0, 16)
+    -- Add this line for the 11th parameter:
+    elseif param_focus == 11 then s.prob = util.clamp(s.prob + d, 0, 100)
     end
   end
   redraw()
@@ -300,13 +323,73 @@ function redraw()
     end
   end
   screen.level(1); screen.move(0, 36); screen.line(127, 36); screen.stroke()
-  local s = t.steps[edit_focus]; local vals = {s.pitch, s.vel, s.num.."/"..s.den, s.cc1_n, s.cc1_v, s.cc2_n, s.cc2_v, s.mod, math.floor(s.artic*100).."%", s.glide, s.loop_to, s.repeats, s.prob.."%"}
-  local start = util.clamp(param_focus - 2, 1, #param_names - 3)
+  local s = t.steps[edit_focus]
+  local vals = {
+    s.pitch .. " (" .. mu.note_num_to_name(s.pitch, true) .. ")", -- 1: Shows "60 (C3)"
+    s.vel,             -- 2
+    s.num.."/"..s.den, -- 3
+    s.cc1_v,           -- 4
+    s.cc2_v,           -- 5
+    s.mod,             -- 6
+    math.floor(s.artic*100).."%", -- 7
+    s.glide,           -- 8
+    s.loop_to,         -- 9
+    s.repeats,         -- 10
+    s.prob.."%"        -- 11
+  }
+
+  -- Calculate scrolling window
+  local start = util.clamp(param_focus - 1, 1, math.max(1, #param_names - 3))
+
   for i = 0, 3 do
-    local idx = start + i; local y = 44 + (i * 6); screen.level(param_focus == idx and 15 or 2); screen.move(8, y)
-    if idx == 3 then screen.text("DUR: "); screen.level(param_focus == 3 and (dur_sub_focus == 1 and 15 or 4) or 2); screen.text(s.num); screen.level(param_focus == 3 and 15 or 2); screen.text("/"); screen.level(param_focus == 3 and (dur_sub_focus == 2 and 15 or 4) or 2); screen.text(s.den)
-    else local label = param_names[idx]; if edit_focus == t.p_end and idx <= 2 then label = label .. "!" end; screen.text(label .. ": " .. vals[idx]) end
-    if param_focus == idx then screen.move(2, y); screen.text(">") end
+    local idx = start + i
+    if idx <= #param_names then
+      local y = 44 + (i * 6)
+      screen.level(param_focus == idx and 15 or 2)
+
+      -- 1. DRAW LABEL (Left Aligned)
+      screen.move(8, y)
+      local label = param_names[idx]
+      -- Add the "!" indicator if we are editing the last step of a pattern
+      if edit_focus == t.p_end and idx <= 2 then label = label .. "!" end
+      screen.text(label)
+
+      -- 2. DRAW VALUE (Right Aligned)
+      -- We move to 122 to leave a small 6-pixel margin from the edge
+      screen.move(122, y)
+
+      if idx == 3 then
+        -- Duration is special: we draw parts manually to handle sub-focus colors
+        -- Since text_right doesn't support multiple colors easily,
+        -- we'll draw it right-to-left manually
+        local d_val = s.den
+        local n_val = s.num
+
+        screen.level(param_focus == 3 and (dur_sub_focus == 2 and 15 or 4) or 2)
+        screen.text_right(d_val)
+
+        -- Get width of denominator to offset the slash and numerator
+        local d_width = 10
+        screen.move(122 - d_width, y)
+        screen.level(param_focus == 3 and 15 or 2)
+        screen.text_right("/")
+
+        local s_width = 8
+        screen.move(122 - d_width - s_width, y)
+        screen.level(param_focus == 3 and (dur_sub_focus == 1 and 15 or 4) or 2)
+        screen.text_right(n_val)
+      else
+        -- Standard values just use text_right
+        screen.text_right(vals[idx])
+      end
+
+      -- 3. DRAW SELECTION INDICATOR
+      if param_focus == idx then
+        screen.level(15)
+        screen.move(2, y)
+        screen.text(">")
+      end
+    end
   end
   screen.update()
 end

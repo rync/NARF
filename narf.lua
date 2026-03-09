@@ -157,7 +157,11 @@ function run_track(t_idx)
     local total_sleep = dur_beats * clock.get_beat_sec()
     if s.artic < 1.0 then
       clock.sleep(total_sleep * s.artic); m:note_off(final_pitch, 0, t.midi_ch); clock.sleep(total_sleep * (1 - s.artic))
-    else clock.sleep(total_sleep); m:note_off(final_pitch, 0, t.midi_ch); end
+    else clock.sleep(total_sleep);
+      m:note_off(final_pitch, 0, t.midi_ch)
+      t.is_playing_note = false -- Note ended
+      redraw()
+    end
 
     local next_step = t.active_step + 1
     if s.loop_to > 0 and s.repeats > 0 and s.loop_to < t.p_end and s.loop_to >= t.p_start then
@@ -170,13 +174,6 @@ function run_track(t_idx)
       flash_level = 4
     end
     t.active_step = next_step; redraw()
-
-
-
-    -- ... after the articulation sleep:
-    m:note_off(final_pitch, 0, t.midi_ch)
-    t.is_playing_note = false -- Note ended
-    redraw()
   end
 end
 
@@ -185,10 +182,19 @@ function enc(n, d)
   if show_splash then show_splash = false; redraw(); return end
   local t = tracks[selected_track]; local s = t.steps[edit_focus]
   if n == 1 then
-    if shift then selected_track = util.clamp(selected_track + d, 1, 4)
-    else edit_focus = util.clamp(edit_focus + d, 1, 99) end
+    if shift then
+      -- Change Tempo with Shift + E1
+      params:delta("bpm", d)
+    else
+      -- Select Step with just E1
+      edit_focus = util.clamp(edit_focus + d, 1, 99)
+    end
   elseif n == 2 then
-    if param_focus == 3 then
+    if shift then
+      -- Change Track with Shift + E2
+      selected_track = util.clamp(selected_track + d, 1, 4)
+    elseif param_focus == 3 then
+      -- [Keep your existing duration sub-focus logic here]
       dur_sub_focus = dur_sub_focus + d
       if dur_sub_focus > 2 or dur_sub_focus < 1 then
         param_focus = util.clamp(param_focus + (dur_sub_focus < 1 and -1 or 1), 1, #param_names)
@@ -291,12 +297,15 @@ function redraw()
   if flash_level > 0 then screen.level(flash_level); screen.rect(0,0,128,64); screen.fill() end
   for i=1,4 do
     screen.level(selected_track == i and 15 or 2)
-    screen.move((i-1)*12, 7); screen.text(track_names[i])
+    screen.move((i-1)*8, 7); screen.text(track_names[i])
     if tracks[i].is_running then screen.rect((i-1)*12, 8, 8, 1); screen.fill() end
   end
   screen.font_size(8)
   screen.font_face(2)
-  screen.level(3); screen.move(127, 7); screen.text_right("SAVE:"..params:get("save_slot").."  PLAY:"..tracks[selected_track].active_step.."  EDIT:"..edit_focus)
+  screen.level(3)
+  screen.move(127, 7)
+  local bpm_val = math.floor(clock.get_tempo())
+  screen.text_right("BPM:"..bpm_val.." SAVE:"..params:get("save_slot").." PLAY:"..tracks[selected_track].active_step.." EDIT:"..edit_focus)
   local t = tracks[selected_track]; local center_x, sc = 64, 12
   local is_last_step = (t.active_step == t.p_end); local cur_s = t.steps[t.active_step]
   local cur_w = math.max(2, (cur_s.num/cur_s.den)*4*sc); screen.level(is_last_step and 15 or 12)

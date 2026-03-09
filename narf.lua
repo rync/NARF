@@ -208,7 +208,7 @@ function enc(n, d)
     if param_focus == 1 then s.pitch = util.clamp(s.pitch + d, 0, 127)
     elseif param_focus == 2 then s.vel = util.clamp(s.vel + d, 0, 127)
     elseif param_focus == 3 then
-      if dur_sub_focus == 1 then s.num = util.clamp(s.num + d, 1, 32) else s.den = util.clamp(s.den + d, 1, 32) end
+      if dur_sub_focus == 1 then s.num = util.clamp(s.num + d, 1, 128) else s.den = util.clamp(s.den + d, 1, 128) end
     elseif param_focus == 4 then s.cc1_v = util.clamp(s.cc1_v + d, 0, 127)
     elseif param_focus == 5 then s.cc2_v = util.clamp(s.cc2_v + d, 0, 127)
     elseif param_focus == 6 then s.mod = util.clamp(s.mod + d, 0, 127)

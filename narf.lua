@@ -48,6 +48,8 @@ local m = midi.connect()
 
 -- 2. INITIALIZATION
 function init()
+  params:set("clock_tempo", 108)
+
   for i = 1, 4 do
     tracks[i] = {
       active_step = 1,
@@ -184,7 +186,7 @@ function enc(n, d)
   if n == 1 then
     if shift then
       -- Change Tempo with Shift + E1
-      params:delta("bpm", d)
+      params:set("clock_tempo", util.clamp(math.floor(clock.get_tempo() + d), 20, 300))
     else
       -- Select Step with just E1
       edit_focus = util.clamp(edit_focus + d, 1, 99)
@@ -208,7 +210,7 @@ function enc(n, d)
     if param_focus == 1 then s.pitch = util.clamp(s.pitch + d, 0, 127)
     elseif param_focus == 2 then s.vel = util.clamp(s.vel + d, 0, 127)
     elseif param_focus == 3 then
-      if dur_sub_focus == 1 then s.num = util.clamp(s.num + d, 1, 128) else s.den = util.clamp(s.den + d, 1, 128) end
+      if dur_sub_focus == 1 then s.num = util.clamp(s.num + d, 1, 32) else s.den = util.clamp(s.den + d, 1, 32) end
     elseif param_focus == 4 then s.cc1_v = util.clamp(s.cc1_v + d, 0, 127)
     elseif param_focus == 5 then s.cc2_v = util.clamp(s.cc2_v + d, 0, 127)
     elseif param_focus == 6 then s.mod = util.clamp(s.mod + d, 0, 127)
@@ -297,38 +299,59 @@ function redraw()
   if flash_level > 0 then screen.level(flash_level); screen.rect(0,0,128,64); screen.fill() end
   for i=1,4 do
     screen.level(selected_track == i and 15 or 2)
-    screen.move((i-1)*8, 7); screen.text(track_names[i])
+    screen.move((i-1)*12, 7); screen.text(track_names[i])
     if tracks[i].is_running then screen.rect((i-1)*12, 8, 8, 1); screen.fill() end
   end
   screen.font_size(8)
-  screen.font_face(2)
+  screen.font_face(0)
   screen.level(3)
   screen.move(127, 7)
+
   local bpm_val = math.floor(clock.get_tempo())
-  screen.text_right("BPM:"..bpm_val.." SAVE:"..params:get("save_slot").." PLAY:"..tracks[selected_track].active_step.." EDIT:"..edit_focus)
+  screen.text_right("BPM: "..bpm_val.."  Save: "..params:get("save_slot"))
+  screen.move(127, 16)
+  screen.text_right("Play: "..tracks[selected_track].active_step.."  Edit: "..edit_focus)
+
   local t = tracks[selected_track]; local center_x, sc = 64, 12
   local is_last_step = (t.active_step == t.p_end); local cur_s = t.steps[t.active_step]
   local cur_w = math.max(2, (cur_s.num/cur_s.den)*4*sc); screen.level(is_last_step and 15 or 12)
-  local bar_h = (cur_s.pitch/127)*16; screen.rect(center_x-(cur_w/2), 32-bar_h, cur_w, bar_h); screen.fill()
-  if is_last_step then screen.level(15); screen.move(center_x, 12); screen.line_rel(-2,-2); screen.line_rel(4,0); screen.line_rel(-2,2); screen.fill() end
+  local h_mult = 10
+  local bar_h = (cur_s.pitch/127)*h_mult;
+  screen.rect(center_x-(cur_w/2), 32-bar_h, cur_w, bar_h);
+  screen.fill()
+  if is_last_step then
+    screen.level(15);
+    screen.move(center_x, 12);
+    screen.line_rel(-2,-2);
+    screen.line_rel(4,0);
+    screen.line_rel(-2,2);
+    screen.fill()
+  end
   local fw_x = center_x + (cur_w/2) + 2
-  screen.font_face(1)
+
+  screen.font_face(0)
   screen.font_size(8)
   for i = 1, 10 do
-    local idx = t.active_step + i; if idx <= 99 and fw_x < 128 then
-      local s = t.steps[idx]; local w = math.max(2, (s.num/s.den)*4*sc)
-      if idx == t.p_end then screen.level(10); screen.rect(fw_x, 15, w, 1); screen.fill(); screen.move(fw_x + w, 32); screen.line_rel(0, -16); screen.stroke() end
-      screen.level((idx >= t.p_start and idx <= t.p_end) and 2 or 1); if idx == edit_focus then screen.level(5) end
-      local h = (s.pitch/127)*16; screen.rect(fw_x, 32-h, w, h); screen.fill(); fw_x = fw_x + w + 1
-    end
-  end
-  local bw_x = center_x - (cur_w/2) - 2
-  for i = 1, 10 do
-    local idx = t.active_step - i; if idx >= 1 and bw_x > 0 then
-      local s = t.steps[idx]; local w = math.max(2, (s.num/s.den)*4*sc)
-      if idx == t.p_end then screen.level(10); screen.rect(bw_x-w, 15, w, 1); screen.fill(); screen.move(bw_x, 32); screen.line_rel(0, -16); screen.stroke() end
-      screen.level((idx >= t.p_start and idx <= t.p_end) and 2 or 1); if idx == edit_focus then screen.level(5) end
-      local h = (s.pitch/127)*16; screen.rect(bw_x-w, 32-h, w, h); screen.fill(); bw_x = bw_x - w - 1
+    local idx = t.active_step + i;
+    if idx <= 99 and fw_x < 128 then
+      local s = t.steps[idx];
+      local w = math.max(1, (s.num/s.den)*2*sc)
+      if idx == t.p_end then
+        screen.level(10);
+        screen.rect(fw_x, 19, 6, 1);
+        screen.fill();
+        screen.move(fw_x + w, 19);
+        screen.line_rel(0, 4);
+        screen.stroke()
+      end
+      screen.level((idx >= t.p_start and idx <= t.p_end) and 2 or 1);
+      if idx == edit_focus then
+        screen.level(5)
+      end
+      local h = (s.pitch/127)*h_mult;
+      screen.rect(fw_x, 32-h, w, h);
+      screen.fill();
+      fw_x = fw_x + w + 1
     end
   end
   screen.level(1); screen.move(0, 36); screen.line(127, 36); screen.stroke()

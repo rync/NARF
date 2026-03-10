@@ -41,7 +41,6 @@ local param_focus = 1
 local dur_sub_focus = 1 
 local shift = false
 local show_splash = true
-local flash_level = 0 
 
 local param_names = {"PITCH", "VELOCITY", "DURATION", "CC1 VALUE", "CC2 VALUE", "MODULATION", "ARTICULATION", "GLIDE", "LOOP TO", "REPEATS", "PROBABILITY"}
 local m = midi.connect()
@@ -66,7 +65,6 @@ function init()
 
   clock.run(function()
     while true do
-      if flash_level > 0 then flash_level = flash_level - 1; redraw() end
       clock.sleep(1/15)
     end
   end)
@@ -173,7 +171,6 @@ function run_track(t_idx)
     end
     if next_step > t.p_end or next_step < t.p_start then
       next_step = t.p_start
-      flash_level = 4
     end
     t.active_step = next_step; redraw()
   end
@@ -296,7 +293,6 @@ end
 function redraw()
   if show_splash then draw_splash(); return end
   screen.clear()
-  if flash_level > 0 then screen.level(flash_level); screen.rect(0,0,128,64); screen.fill() end
   for i=1,4 do
     screen.level(selected_track == i and 15 or 2)
     screen.move((i-1)*12, 7); screen.text(track_names[i])

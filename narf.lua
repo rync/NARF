@@ -234,8 +234,15 @@ function key(n, z)
   elseif n == 3 then
     if shift then if z == 1 then global_toggle() end
     else
-      if z == 1 then hold_start = util.time()
-      else if util.time() - hold_start > 1 then save_sequence(params:get("save_slot")) else randomize_step(selected_track, edit_focus) end end
+      if z == 1 then
+        hold_start = util.time()
+      else
+        if util.time() - hold_start > 1 then
+          save_sequence(params:get("save_slot"))
+        else
+          randomize_step(selected_track, edit_focus)
+        end
+      end
     end
   end
   redraw()
@@ -274,8 +281,15 @@ function get_quantized_note(note)
 end
 
 function randomize_step(t, i)
-  local r_p = math.random(36, 84); tracks[t].steps[i].pitch = get_quantized_note(r_p)
-  tracks[t].steps[i].vel = math.random(60, 115); tracks[t].steps[i].prob = math.random(1, 10) * 10
+  local r_p = math.random(36, 84)
+  tracks[t].steps[i].pitch = get_quantized_note(r_p)
+  tracks[t].steps[i].vel = math.random(60, 115)
+  tracks[t].steps[i].num = math.random(1, 7)
+  tracks[t].steps[i].den = math.random(4, 24)
+  tracks[t].steps[i].cc1_v = math.random(20, 110)
+  tracks[t].steps[i].cc2_v = math.random(20, 110)
+  tracks[t].steps[i].mod = math.random(0, 108)
+  tracks[t].steps[i].artic = math.random(0.05, 1.0)
 end
 
 function draw_splash()
@@ -295,8 +309,11 @@ function redraw()
   screen.clear()
   for i=1,4 do
     screen.level(selected_track == i and 15 or 2)
-    screen.move((i-1)*12, 7); screen.text(track_names[i])
-    if tracks[i].is_running then screen.rect((i-1)*12, 8, 8, 1); screen.fill() end
+    screen.move((i-1)*12, 7)
+    screen.text(track_names[i])
+    if tracks[i].is_running then screen.rect((i-1)*12, 8, 8, 1)
+      screen.fill()
+    end
   end
   screen.font_size(8)
   screen.font_face(0)
@@ -310,7 +327,9 @@ function redraw()
 
   local t = tracks[selected_track]; local center_x, sc = 64, 12
   local is_last_step = (t.active_step == t.p_end); local cur_s = t.steps[t.active_step]
-  local cur_w = math.max(2, (cur_s.num/cur_s.den)*4*sc); screen.level(is_last_step and 15 or 12)
+  local w_mult = 2
+  local cur_w = math.max(2, (cur_s.num/cur_s.den)*w_mult*sc)
+  screen.level(is_last_step and 15 or 12)
   local h_mult = 10
   local bar_h = (cur_s.pitch/127)*h_mult;
   screen.rect(center_x-(cur_w/2), 32-bar_h, cur_w, bar_h);
@@ -331,7 +350,7 @@ function redraw()
     local idx = t.active_step + i;
     if idx <= 99 and fw_x < 128 then
       local s = t.steps[idx];
-      local w = math.max(1, (s.num/s.den)*2*sc)
+      local w = math.max(1, (s.num/s.den)*w_mult*sc)
       if idx == t.p_end then
         screen.level(10);
         screen.rect(fw_x, 19, 6, 1);

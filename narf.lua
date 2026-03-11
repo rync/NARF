@@ -4,28 +4,33 @@
 --      4 Channels of 
 --    99-Step Stochastic 
 --     MIDI Sequencing
--- 
--- K1 (Hold) + E1: 
+--
+-- K1 (Hold) + E1:
+--      Adjust Tempo
+-- K1 (Hold) + E2:
 --      Select Track (A, B, C, D)
 -- E1: Select Step
--- E2: Select Paramater
+-- E2: Select Parameter
 -- E3: Adjust Parameter
 --
 -- Parameter details:
 --
--- DURATION: E2 toggles between 
---     Numerator/Denominator. 
+-- DURATION: E2 toggles between
+--     Numerator/Denominator.
 --     E3 adjusts.
 --
 -- CC1/CC2: Assignable MIDI CC.
---     Select CC address and 
+--     Select CC address and
 --     value separately.
 --
 -- K1 + K3: GLOBAL START / STOP
 --
--- K3 (Hold):  
+-- K3 (tap):
+--     Randomize step
+--
+-- K3 (Hold):
 --     SAVE to selected SLOT.
---     Slots are handled 
+--     Slots are handled
 --     externally in PARAMS.
 
 local tab = require 'tabutil'
@@ -38,16 +43,17 @@ local track_names = {"A", "B", "C", "D"}
 
 local edit_focus = 1
 local param_focus = 1
-local dur_sub_focus = 1 
+local dur_sub_focus = 1
 local shift = false
 local show_splash = true
-local flash_level = 0 
 
 local param_names = {"PITCH", "VELOCITY", "DURATION", "CC1 VALUE", "CC2 VALUE", "MODULATION", "ARTICULATION", "GLIDE", "LOOP TO", "REPEATS", "PROBABILITY"}
 local m = midi.connect()
 
 -- 2. INITIALIZATION
 function init()
+  params:set("clock_tempo", 108)
+
   for i = 1, 4 do
     tracks[i] = {
       active_step = 1,
@@ -64,7 +70,6 @@ function init()
 
   clock.run(function()
     while true do
-      if flash_level > 0 then flash_level = flash_level - 1; redraw() end
       clock.sleep(1/15)
     end
   end)
@@ -157,7 +162,11 @@ function run_track(t_idx)
     local total_sleep = dur_beats * clock.get_beat_sec()
     if s.artic < 1.0 then
       clock.sleep(total_sleep * s.artic); m:note_off(final_pitch, 0, t.midi_ch); clock.sleep(total_sleep * (1 - s.artic))
-    else clock.sleep(total_sleep); m:note_off(final_pitch, 0, t.midi_ch); end
+    else clock.sleep(total_sleep);
+      m:note_off(final_pitch, 0, t.midi_ch)
+      t.is_playing_note = false -- Note ended
+      redraw()
+    end
 
     local next_step = t.active_step + 1
     if s.loop_to > 0 and s.repeats > 0 and s.loop_to < t.p_end and s.loop_to >= t.p_start then
@@ -167,16 +176,8 @@ function run_track(t_idx)
     end
     if next_step > t.p_end or next_step < t.p_start then
       next_step = t.p_start
-      flash_level = 4
     end
     t.active_step = next_step; redraw()
-
-
-
-    -- ... after the articulation sleep:
-    m:note_off(final_pitch, 0, t.midi_ch)
-    t.is_playing_note = false -- Note ended
-    redraw()
   end
 end
 
@@ -185,10 +186,19 @@ function enc(n, d)
   if show_splash then show_splash = false; redraw(); return end
   local t = tracks[selected_track]; local s = t.steps[edit_focus]
   if n == 1 then
-    if shift then selected_track = util.clamp(selected_track + d, 1, 4)
-    else edit_focus = util.clamp(edit_focus + d, 1, 99) end
+    if shift then
+      -- Change Tempo with Shift + E1
+      params:set("clock_tempo", util.clamp(math.floor(clock.get_tempo() + d), 20, 300))
+    else
+      -- Select Step with just E1
+      edit_focus = util.clamp(edit_focus + d, 1, 99)
+    end
   elseif n == 2 then
-    if param_focus == 3 then
+    if shift then
+      -- Change Track with Shift + E2
+      selected_track = util.clamp(selected_track + d, 1, 4)
+    elseif param_focus == 3 then
+      -- [Keep your existing duration sub-focus logic here]
       dur_sub_focus = dur_sub_focus + d
       if dur_sub_focus > 2 or dur_sub_focus < 1 then
         param_focus = util.clamp(param_focus + (dur_sub_focus < 1 and -1 or 1), 1, #param_names)
@@ -221,16 +231,29 @@ function key(n, z)
   if show_splash then show_splash = false; redraw(); return end
   if n == 1 then shift = (z == 1) end
   if n == 2 and z == 1 then
-    if shift then tracks[selected_track].active_step = edit_focus
+    if shift then
+      tracks[selected_track].active_step = edit_focus
     else
       tracks[selected_track].is_running = not tracks[selected_track].is_running
-      if tracks[selected_track].is_running then clock.run(function() run_track(selected_track) end) end
+      if tracks[selected_track].is_running then
+        clock.run(function() run_track(selected_track) end)
+      end
     end
   elseif n == 3 then
-    if shift then if z == 1 then global_toggle() end
+    if shift then
+      if z == 1 then
+        global_toggle()
+      end
     else
-      if z == 1 then hold_start = util.time()
-      else if util.time() - hold_start > 1 then save_sequence(params:get("save_slot")) else randomize_step(selected_track, edit_focus) end end
+      if z == 1 then
+        hold_start = util.time()
+      else
+        if util.time() - hold_start > 1 then
+          save_sequence(params:get("save_slot"))
+        else
+          randomize_step(selected_track, edit_focus)
+        end
+      end
     end
   end
   redraw()
@@ -238,10 +261,24 @@ end
 
 -- 6. GLOBAL, SAVE/LOAD, SPLASH
 function global_toggle()
+  -- Starts all 4 tracks at once
   local any_r = false
-  for i=1,4 do if tracks[i].is_running then any_r = true end end
-  if any_r then for i=1,4 do tracks[i].is_running = false end
-  else for i=1,4 do tracks[i].active_step = tracks[i].p_start; tracks[i].is_running = true; clock.run(function() run_track(i) end) end end
+  for i=1,4 do
+    if tracks[i].is_running then
+      any_r = true
+    end
+  end
+  if any_r then
+    for i=1,4 do
+      tracks[i].is_running = false
+    end
+  else
+    for i=1,4 do
+      tracks[i].active_step = tracks[i].p_start;
+      tracks[i].is_running = true;
+      clock.run(function() run_track(i) end)
+    end
+  end
   redraw()
 end
 
@@ -269,8 +306,15 @@ function get_quantized_note(note)
 end
 
 function randomize_step(t, i)
-  local r_p = math.random(36, 84); tracks[t].steps[i].pitch = get_quantized_note(r_p)
-  tracks[t].steps[i].vel = math.random(60, 115); tracks[t].steps[i].prob = math.random(1, 10) * 10
+  local r_p = math.random(36, 84)
+  tracks[t].steps[i].pitch = get_quantized_note(r_p)
+  tracks[t].steps[i].vel = math.random(60, 115)
+  tracks[t].steps[i].num = math.random(1, 7)
+  tracks[t].steps[i].den = math.random(4, 24)
+  tracks[t].steps[i].cc1_v = math.random(20, 110)
+  tracks[t].steps[i].cc2_v = math.random(20, 110)
+  tracks[t].steps[i].mod = math.random(0, 108)
+  tracks[t].steps[i].artic = math.random(0.05, 1.0)
 end
 
 function draw_splash()
@@ -288,38 +332,76 @@ end
 function redraw()
   if show_splash then draw_splash(); return end
   screen.clear()
-  if flash_level > 0 then screen.level(flash_level); screen.rect(0,0,128,64); screen.fill() end
+
+  -- Display the tracks at the top left
   for i=1,4 do
     screen.level(selected_track == i and 15 or 2)
-    screen.move((i-1)*12, 7); screen.text(track_names[i])
-    if tracks[i].is_running then screen.rect((i-1)*12, 8, 8, 1); screen.fill() end
-  end
-  screen.font_size(8)
-  screen.font_face(2)
-  screen.level(3); screen.move(127, 7); screen.text_right("SAVE:"..params:get("save_slot").."  PLAY:"..tracks[selected_track].active_step.."  EDIT:"..edit_focus)
-  local t = tracks[selected_track]; local center_x, sc = 64, 12
-  local is_last_step = (t.active_step == t.p_end); local cur_s = t.steps[t.active_step]
-  local cur_w = math.max(2, (cur_s.num/cur_s.den)*4*sc); screen.level(is_last_step and 15 or 12)
-  local bar_h = (cur_s.pitch/127)*16; screen.rect(center_x-(cur_w/2), 32-bar_h, cur_w, bar_h); screen.fill()
-  if is_last_step then screen.level(15); screen.move(center_x, 12); screen.line_rel(-2,-2); screen.line_rel(4,0); screen.line_rel(-2,2); screen.fill() end
-  local fw_x = center_x + (cur_w/2) + 2
-  screen.font_face(1)
-  screen.font_size(8)
-  for i = 1, 10 do
-    local idx = t.active_step + i; if idx <= 99 and fw_x < 128 then
-      local s = t.steps[idx]; local w = math.max(2, (s.num/s.den)*4*sc)
-      if idx == t.p_end then screen.level(10); screen.rect(fw_x, 15, w, 1); screen.fill(); screen.move(fw_x + w, 32); screen.line_rel(0, -16); screen.stroke() end
-      screen.level((idx >= t.p_start and idx <= t.p_end) and 2 or 1); if idx == edit_focus then screen.level(5) end
-      local h = (s.pitch/127)*16; screen.rect(fw_x, 32-h, w, h); screen.fill(); fw_x = fw_x + w + 1
+    screen.move((i-1)*12, 7)
+    screen.text(track_names[i])
+    if tracks[i].is_running then screen.rect((i-1)*12, 8, 8, 1)
+      screen.fill()
     end
   end
-  local bw_x = center_x - (cur_w/2) - 2
+
+  -- Display text info on the top right
+  screen.font_size(8)
+  screen.font_face(0)
+  screen.level(3)
+  screen.move(127, 7)
+  local bpm_val = math.floor(clock.get_tempo())
+  screen.text_right("BPM: "..bpm_val.."  Save: "..params:get("save_slot"))
+  screen.move(127, 16)
+  screen.text_right("Play: "..tracks[selected_track].active_step.."  Edit: "..edit_focus)
+
+  -- Preparing step animation
+  local t = tracks[selected_track]; local center_x, sc = 64, 12
+  local is_last_step = (t.active_step == t.p_end); local cur_s = t.steps[t.active_step]
+  local w_mult = 2
+  local cur_w = math.max(2, (cur_s.num/cur_s.den)*w_mult*sc)
+  screen.level(is_last_step and 15 or 12)
+  local h_mult = 10
+  local bar_h = (cur_s.pitch/127)*h_mult;
+
+  -- Drawing the current step bar
+  screen.rect(center_x-(cur_w/2), 32-bar_h, cur_w, bar_h);
+  screen.fill()
+  if is_last_step then
+    screen.level(15);
+    screen.move(center_x, 12);
+    screen.line_rel(-2,-2);
+    screen.line_rel(4,0);
+    screen.line_rel(-2,2);
+    screen.fill()
+  end
+  local fw_x = center_x + (cur_w/2) + 2
+
+  -- Drawing steps and animation
+  screen.font_face(0)
+  screen.font_size(8)
   for i = 1, 10 do
-    local idx = t.active_step - i; if idx >= 1 and bw_x > 0 then
-      local s = t.steps[idx]; local w = math.max(2, (s.num/s.den)*4*sc)
-      if idx == t.p_end then screen.level(10); screen.rect(bw_x-w, 15, w, 1); screen.fill(); screen.move(bw_x, 32); screen.line_rel(0, -16); screen.stroke() end
-      screen.level((idx >= t.p_start and idx <= t.p_end) and 2 or 1); if idx == edit_focus then screen.level(5) end
-      local h = (s.pitch/127)*16; screen.rect(bw_x-w, 32-h, w, h); screen.fill(); bw_x = bw_x - w - 1
+    local idx = t.active_step + i;
+    if idx <= 99 and fw_x < 128 then
+      local s = t.steps[idx];
+      local w = math.max(1, (s.num/s.den)*w_mult*sc)
+
+      -- final step marker
+      if idx == t.p_end then
+        screen.level(10);
+        screen.rect(fw_x, 19, w, 1);
+        screen.fill();
+        screen.move(fw_x + w, 19);
+        screen.line_rel(0, 4);
+        screen.stroke()
+      end
+
+      screen.level((idx >= t.p_start and idx <= t.p_end) and 2 or 1);
+      if idx == edit_focus then
+        screen.level(5)
+      end
+      local h = (s.pitch/127)*h_mult;
+      screen.rect(fw_x, 32-h, w, h);
+      screen.fill();
+      fw_x = fw_x + w + 1
     end
   end
   screen.level(1); screen.move(0, 36); screen.line(127, 36); screen.stroke()

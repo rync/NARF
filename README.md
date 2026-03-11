@@ -7,8 +7,9 @@ NARF is a high-density, 4-channel MIDI sequencer inspired by the Buchla 251e. NA
 
 NARF is a vibe coded with Google Gemini. ZORT!
 
-##
-**1\. Features**
+### **Installation**: `;install https://github.com/rync/NARF.git`
+
+## Features
 
 * **Four Independent Tracks:** A, B, C, and D, each with 99 steps.  
 * **Rational Durations:** Step lengths from $1/1$ to $32/32$.  
@@ -19,29 +20,29 @@ NARF is a vibe coded with Google Gemini. ZORT!
 * **Global Visual Feedback:** High-fidelity loop-end markers and a screen-wide "Global Flash" on resets.  
 * **Tactile Integration:** Pre-mapped for **16n Faderbank** and **Korg nanoKONTROL2**.
 
-##
-**2\. Controls & Navigation**
 
-### **Global Modifiers**
+## Controls & Navigation
 
-| Key Combo | Action |
-| :---- | :---- |
-| **K1 (Hold) \+ E1** | **Track Select:** Switch active track (A, B, C, D). |
+### Global Modifiers
+
+| Key Combo           | Action                                                                 |
+|:--------------------|:-----------------------------------------------------------------------|
+| **K1 (Hold) \+ E1** | **Adjust Tempo:** From 20 to 300 bpm.                                  |
+| **K1 (Hold) \+ E2** | **Track Select:** Switch active track (A, B, C, D).                    |
 | **K1 (Hold) \+ K2** | **Jump to Edit:** Snap playhead to the step you are currently viewing. |
-| **K1 (Hold) \+ K3** | **Global Transport:** Start/Stop all four tracks in sync. |
+| **K1 (Hold) \+ K3** | **Global Transport:** Start/Stop all four tracks in sync.              |
 
-### **Sequential Editing**
+### Sequential Editing
 
 * **E1:** Scroll through the 99-step buffer.  
 * **E2:** Cycle through Parameter rows.  
   * *Note:* On the **DURATION** row, turning E2 toggles focus between the **Numerator** and **Denominator**.  
 * **E3:** Adjust value of the highlighted parameter.  
 * **K2:** Toggle playback for the selected track.  
-* **K3 (Short):** Stochastic Randomize (Pitch, Velocity, Probability).  
+* **K3 (Short):** Stochastic Randomize (Pitch, Velocity, CC, and Duration).  
 * **K3 (Long):** Save data to the currently active **Save Slot**.
 
-##
-**3\. Parameter Guide**
+### Parameter Guide
 
 | Parameter | Logic |
 | :---- | :---- |
@@ -55,29 +56,29 @@ NARF is a vibe coded with Google Gemini. ZORT!
 | **REPEATS** | Number of times to loop the jump. |
 | **PROBABILITY** | % chance the step triggers or a loop occurs. |
 
-##
-**4\. Hardware Mappings**
+## Hardware Mappings
 
-### **16n Faderbank**
+NARF includes default mappings for the 16n and Korg nanoKontrol2. These are limited, but avaialble for quick editing of specific parameters across 4 channels.
+
+### 16n Faderbank
 
 * **Faders 1–4:** Pitch (Tracks A–D)  
 * **Faders 5–8:** Velocity (Tracks A–D)  
 * **Faders 9–12:** Duration Numerator (Tracks A–D)  
 * **Faders 13–16:** Modulation (modwheel) (Tracks A–D)
 
-### **Korg nanoKONTROL2**
+### Korg nanoKONTROL2
 
 * **Knobs 1–8:** Toggle Pitch/Velocity for Tracks A–D.  
 * **Faders 1–8:** Toggle Modulation/Articulation for Tracks A–D.
 
-##
-**5\. Performance Cues**
+## Performance Cues
 
 * **The Wall (|):** A vertical line indicates the Pattern End step set in the Params menu.  
 * **The Triangle:** A bright marker above the playhead indicates you have reached the final step of the loop.  
 * **The Flash:** The screen will pulse white whenever a track returns to its Pattern Start point.  
 * **The \! Marker:** If the edit\_focus is on the final step of the loop, parameter labels change (e.g., PI\!) as a warning.
 
-**6\. Save Data**
+## Save Data
 
 To switch save slots, go to **PARAMS \> NARF CONFIG \> SAVE/LOAD SLOT**. The slot is shown on the screen, and can be autosaved via hotkey.

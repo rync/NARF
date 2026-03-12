@@ -302,7 +302,12 @@ function randomize_step(t, i)
   local r_p = math.random(36, 84)
   tracks[t].steps[i].pitch = get_quantized_note(r_p)
   tracks[t].steps[i].vel = math.random(60, 115)
-  tracks[t].steps[i].prob = math.random(20, 100)
+  tracks[t].steps[i].num = math.random(1, 7)
+  tracks[t].steps[i].den = math.random(4, 24)
+  tracks[t].steps[i].cc1_v = math.random(20, 110)
+  tracks[t].steps[i].cc2_v = math.random(20, 110)
+  tracks[t].steps[i].mod = math.random(0, 108)
+  tracks[t].steps[i].artic = math.random(0.05, 1.0)
 end
 
 function draw_splash()

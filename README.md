@@ -3,7 +3,11 @@
 ### **Quad Sequential MIDI Source for Monome Norns**
 
 
-NARF is a high-density, 4-channel MIDI sequencer inspired by the Buchla 251e. NARF utilizes rational fraction durations over predictable step grids, allowing for complex polyrhythms, tuplets, and "West Coast" rhythmic shifting in the style of the 251e, the MARF, and the Orthoganol Devices ER-101. It also has built-in support for the 16n and Korg NanoKontrol2, pitch randomization per step, and keyboard pitch input per step. Global quantization is enabled from the parameters menu.
+NARF is a high-density, 4-channel MIDI sequencer inspired by the Buchla 251e. NARF utilizes rational fraction durations over predictable step grids, allowing for complex polyrhythms, tuplets, and "West Coast" rhythmic shifting in the style of the 251e, the MARF, and the Orthoganol Devices ER-101. It also has built-in support for the 16n and Korg NanoKontrol2, pitch randomization per step, and keyboard pitch input per step. 
+
+Global quantization is enabled and accessible from the parameters menu.
+
+![Cover Splash](docs/cover.png)
 
 NARF is a vibe coded with Google Gemini. ZORT!
 
@@ -22,6 +26,8 @@ NARF is a vibe coded with Google Gemini. ZORT!
 
 
 ## Controls & Navigation
+
+![Screenshot](docs/screenshot.png)
 
 ### Global Modifiers
 

@@ -16,7 +16,7 @@ NARF is a vibe coded with Google Gemini. ZORT!
 ## Features
 
 * **Four Independent Tracks:** A, B, C, and D, each with 99 steps.  
-* **Rational Durations:** Step lengths from $1/1$ to $32/32$.  
+* **Rational Durations:** Step lengths from 1/1 to 32/32.  
 * **Proportional Timeline:** A visual playhead that scales step widths based on their rhythmic value.  
 * **Assignable MIDI CCs:** Two independent, per-step MIDI CC destinations (0–127).  
 * **10 Save Slots:** Store and recall up to 10 full project banks (4 tracks each) on the fly.  
@@ -62,21 +62,41 @@ NARF is a vibe coded with Google Gemini. ZORT!
 | **REPEATS** | Number of times to loop the jump. |
 | **PROBABILITY** | % chance the step triggers or a loop occurs. |
 
-## Hardware Mappings
+## **Hardware Controllers**
 
-NARF includes default mappings for the 16n and Korg nanoKontrol2. These are limited, but avaialble for quick editing of specific parameters across 4 channels.
+**NARF** is designed to be programmed via external MIDI hardware to streamline the sequencing workflow. To begin programming, you must first enter **ARMED** mode.
 
-### 16n Faderbank
+* **Toggle Armed Mode:** Hold **K1** \+ press **K2**.  
+* **Indicator:** A ● REC icon will appear on the norns screen when active.
 
-* **Faders 1–4:** Pitch (Tracks A–D)  
-* **Faders 5–8:** Velocity (Tracks A–D)  
-* **Faders 9–12:** Duration Numerator (Tracks A–D)  
-* **Faders 13–16:** Modulation (modwheel) (Tracks A–D)
+**MIDI Keyboard Mapping**
 
-### Korg nanoKONTROL2
+When the script is **ARMED**, any incoming MIDI Note data targets the currently selected step (controlled by **E1**).
 
-* **Knobs 1–8:** Toggle Pitch/Velocity for Tracks A–D.  
-* **Faders 1–8:** Toggle Modulation/Articulation for Tracks A–D.
+| Input | Target Parameter | Description |
+| :---- | :---- | :---- |
+| **Note On** | PITCH | Sets the base MIDI note for the step. |
+| **Velocity** | VELOCITY | Sets the velocity value (0–127). |
+
+**Fader & Knob Mapping (CC)**
+
+NARF supports the **16n Faderbank** and **Korg NanoKontrol2** out of the box. Sliders and knobs map directly to the 11 step parameters.
+
+| Parameter | 16n Fader (CC) | NanoKontrol2 | Description |
+| :---- | :---- | :---- | :---- |
+| **PITCH** | CC 32 | Fader 1 | Fine-tune the MIDI pitch. |
+| **VELOCITY** | CC 33 | Fader 2 | Adjust note strength. |
+| **DURATION** | CC 34 | Fader 3 | Sets the step numerator (1–32). |
+| **CC1 VALUE** | CC 35 | Fader 4 | Send value to CC1 Destination. |
+| **CC2 VALUE** | CC 36 | Fader 5 | Send value to CC2 Destination. |
+| **MODULATION** | CC 37 | Fader 6 | Standard Mod Wheel (CC 1\) data. |
+| **ARTICULATION** | CC 38 | Fader 7 | Note length/Gate percentage. |
+| **GLIDE** | CC 39 | Fader 8 | Portamento time (if supported). |
+| **LOOP TO** | CC 40 | Knob 1 | Step index to jump to. |
+| **REPEATS** | CC 41 | Knob 2 | Number of times to loop. |
+| **PROBABILITY** | CC 42 | Knob 3 | Chance (0–100%) of the jump. |
+
+When **ARMED** is OFF, the script ignores all incoming MIDI Notes and CCs for programming purposes, allowing you to play along with your sequence without overwriting your data.
 
 ## Performance Cues
 

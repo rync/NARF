@@ -187,8 +187,15 @@ function run_track(t_idx)
     local next_step = t.active_step + 1
     if s.loop_to > 0 and s.repeats > 0 and s.loop_to < t.p_end and s.loop_to >= t.p_start then
       if math.random(1, 100) <= s.prob then
-        if s.count < s.repeats then s.count = s.count + 1; next_step = s.loop_to else s.count = 0 end
-      else s.count = 0 end
+        if s.count < s.repeats then
+          s.count = s.count + 1
+          next_step = s.loop_to
+        else
+          s.count = 0
+        end
+      else
+        s.count = 0
+      end
     end
     if next_step > t.p_end or next_step < t.p_start then next_step = t.p_start end
     t.active_step = next_step; redraw()
@@ -311,8 +318,16 @@ function randomize_step(t, i)
 end
 
 function draw_splash()
-  screen.clear(); screen.level(15); screen.move(64, 24); screen.font_size(16); screen.text_center("NARF")
-  screen.level(4); screen.move(64, 42); screen.font_size(8); screen.text_center("Sequential Voltage Source"); screen.update()
+  screen.clear()
+  screen.level(15)
+  screen.move(64, 24)
+  screen.font_size(16)
+  screen.text_center("NARF")
+  screen.level(4)
+  screen.move(64, 42)
+  screen.font_size(8)
+  screen.text_center("Sequential Voltage Source")
+  screen.update()
 end
 
 -- 7. REDRAW
@@ -328,20 +343,27 @@ function redraw()
   -- Track Headers
   for i=1,4 do
     local is_sel = (selected_track == i)
-    screen.level(is_sel and 15 or 2); screen.move((i-1)*12 + 2, 7)
+    screen.level(is_sel and 15 or 2)
+    screen.move((i-1)*12 + 2, 7)
 
     -- Visual Indicator for MIDI Target
     local label = track_names[i]
     if is_armed and is_sel then label = ">" .. label end
     screen.text(label)
 
-    if tracks[i].is_running then screen.pixel((i-1)*12, 3); screen.fill() end
+    if tracks[i].is_running then
+      screen.pixel((i-1)*12, 3)
+      screen.fill()
+    end
   end
 
   -- Edit Focus info
-  screen.level(10); screen.move(2, 16); screen.text("STEP " .. string.format("%02d", edit_focus))
-  screen.level(3); screen.move(127, 7); screen.text_right(math.floor(clock.get_tempo()) .. " BPM")
-  screen.move(127, 16); screen.text_right("SLOT " .. params:get("save_slot"))
+  screen.level(10); screen.move(2, 16)
+  screen.text("STEP " .. string.format("%02d", edit_focus))
+  screen.level(3); screen.move(127, 7)
+  screen.text_right(math.floor(clock.get_tempo()) .. " BPM")
+  screen.move(127, 16)
+  screen.text_right("SLOT " .. params:get("save_slot"))
 
   -- 4-Lane Animation Zone
   local lane_y_start = 18
@@ -351,7 +373,10 @@ function redraw()
     local t = tracks[i]
     local is_sel = (i == selected_track)
     local lane_h = is_sel and 7 or 2
-    screen.level(1); screen.move(64, current_y); screen.line(64, current_y + lane_h); screen.stroke()
+    screen.level(1)
+    screen.move(64, current_y)
+    screen.line(64, current_y + lane_h)
+    screen.stroke()
 
     for s_idx = t.active_step - 10, t.active_step + 10 do
       if s_idx >= 1 and s_idx <= 99 then
@@ -370,10 +395,14 @@ function redraw()
           -- RESTORED BOUNDARY MARKERS
           screen.level(is_sel and 12 or 3)
           if s_idx == t.p_start then
-            screen.move(x_pos - 1, current_y - 1); screen.line(x_pos - 1, current_y + lane_h); screen.stroke()
+            screen.move(x_pos - 1, current_y - 1)
+            screen.line(x_pos - 1, current_y + lane_h)
+            screen.stroke()
           end
           if s_idx == t.p_end then
-            screen.move(x_pos + 5, current_y - 1); screen.line(x_pos + 5, current_y + lane_h); screen.stroke()
+            screen.move(x_pos + 5, current_y - 1)
+            screen.line(x_pos + 5, current_y + lane_h)
+            screen.stroke()
           end
         end
       end
@@ -404,17 +433,32 @@ function redraw()
     if idx <= #param_names then
       local y = 48 + (i * 7); local is_active = (param_focus == idx)
       if is_active then
-        screen.level(1); screen.rect(0, y-5, 128, 5); screen.fill()
-        screen.level(2); screen.rect(0, y-5, math.floor(vals[idx][2] * 128), 5); screen.fill()
+        screen.level(1)
+        screen.rect(0, y-5, 128, 5)
+        screen.fill()
+        screen.level(2)
+        screen.rect(0, y-5, math.floor(vals[idx][2] * 128), 5)
+        screen.fill()
       end
-      screen.level(is_active and 15 or 3); screen.move(10, y); screen.text(param_names[idx])
+      screen.level(is_active and 15 or 3)
+      screen.move(10, y)
+      screen.text(param_names[idx])
       screen.move(124, y)
       if idx == 3 then
-        screen.level(is_active and (dur_sub_focus == 2 and 15 or 5) or 3); screen.text_right(s.den)
-        local dw = screen.text_extents(s.den); screen.level(is_active and 15 or 3); screen.move(124-dw-1, y); screen.text_right("/")
-        screen.level(is_active and (dur_sub_focus == 1 and 15 or 5) or 3); screen.move(124-dw-6, y); screen.text_right(s.num)
+        screen.level(is_active and (dur_sub_focus == 2 and 15 or 5) or 3)
+        screen.text_right(s.den)
+        local dw = screen.text_extents(s.den)
+        screen.level(is_active and 15 or 3)
+        screen.move(124-dw-1, y)
+        screen.text_right("/")
+        screen.level(is_active and (dur_sub_focus == 1 and 15 or 5) or 3)
+        screen.move(124-dw-6, y)
+        screen.text_right(s.num)
       else screen.text_right(vals[idx][1]) end
-      if is_active then screen.level(15); screen.move(2, y); screen.text(">") end
+      if is_active then screen.level(15)
+        screen.move(2, y)
+        screen.text(">")
+      end
     end
   end
   screen.update()

@@ -36,6 +36,7 @@ local param_names = {"PITCH", "VELOCITY", "DURATION", "CC1 VALUE", "CC2 VALUE", 
 local m = midi.connect()
 
 local splash_quotes = {
+  -- Most of these were swiped from Pinky and the Brain. You know, where the name of the script comes from.
   {"Sequential Voltage Source"},
   {"It's only stochastic", "if you don't know what", "stochastic means."},
   {"If it was only a 3 hour tour", "why did the Howells'", "bring all their money?"},
@@ -317,10 +318,10 @@ function draw_splash()
   screen.text_center("NARF")
   screen.level(4)
   screen.move(64, 42)
-  screen.font_size(7)
+  screen.font_size(8)
   local quo = splash_quotes[math.random(#splash_quotes)]
   for i=1,#quo do
-    screen.move(64, 42 + 8*(i-1))
+    screen.move(64, 42 + 9*(i-1))
     screen.text_center(quo[i])
   end
   screen.update()

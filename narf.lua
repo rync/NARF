@@ -35,9 +35,43 @@ local track_popup = 0
 local param_names = {"PITCH", "VELOCITY", "DURATION", "CC1 VALUE", "CC2 VALUE", "MODULATION", "ARTICULATION", "GLIDE", "LOOP TO", "REPEATS", "PROBABILITY"}
 local m = midi.connect()
 
+local splash_quotes = {
+  {"Sequential Voltage Source"},
+  {"It's only stochastic", "if you don't know what", "stochastic means."},
+  {"If it was only a 3 hour tour", "why did the Howells'", "bring all their money?"},
+  {"ZORT! POIT! TROZ!"},
+  {"Do sealions eat seazebras?"},
+  {"All of the Buchla 200e", "with none of the fun!"},
+  {"Burlaps chafe me so."},
+  {"This time, you put", "trousers on the chimp."},
+  {"Where do you stick the", "feather and", "call it macaroni?"},
+  {"Isn't that why they", "invented tube socks?"},
+  {"I think It'd rather", "eat the Macarena."},
+  {"If Jimmy cracks corn,", "and no one cares,", "why does he keep doing it?"},
+  {"If we give peas a chance,", "won't the lima beans", "feel left out?"},
+  {"If our knees bent the", "other way, how would we", "ride a bicycle?"},
+  {"Why does a forklift have", "to be so big if all it does", "is lift forks?"},
+  {"Can you use the word", "'asphalt'", "in polite society?"},
+  {"Would the villains really", "have gotten away with it", "if it weren't for those", "pesky kids and their dog?"},
+  {"How are we gonna teach", "a goat to dance", "with flippers on?"},
+  {"Do we have time to", "grease the rockets?"},
+  {"If Charlton Heston doesn't", "eat Soylent Green,", "what will he eat?"},
+  {"If running shoes had", "little feet, wouldn't they", "need their own shoes?"},
+  {"If a ham can operate", "a radio, why can't", "a pig set a VCR?"},
+  {"How much deeper would the", "ocean be if there weren't", "sponges down there?"},
+  {"Doing a clog dance in", "actual clogs will give me", "awful blisters."},
+  {"What if the Teletubbies", "don't fight fair?"},
+  {"If Pinocchio were carved", "out of bacon it wouldn't be", "the same story, would it?"},
+  {"Suppose we do the", "hokey pokey and turn ourselves around,", "is that what it's really all about?"},
+  {"Instant karma's", "always so lumpy."},
+  {"A show about two talking", "lab mice? It'll never", "get on the air."},
+  {"What are the chances that,", "this time, I'm pondering", "what you're pondering?"},
+}
+
 -- 2. INITIALIZATION
 function init()
   params:set("clock_tempo", 108)
+  math.randomseed(os.time())
 
   for i = 1, 4 do
     tracks[i] = {
@@ -276,8 +310,20 @@ function randomize_step(t, i)
 end
 
 function draw_splash()
-  screen.clear(); screen.level(15); screen.move(64, 24); screen.font_size(16); screen.text_center("NARF")
-  screen.level(4); screen.move(64, 42); screen.font_size(8); screen.text_center("Sequential Voltage Source"); screen.update()
+  screen.clear()
+  screen.level(15)
+  screen.move(64, 24)
+  screen.font_size(16)
+  screen.text_center("NARF")
+  screen.level(4)
+  screen.move(64, 42)
+  screen.font_size(7)
+  local quo = splash_quotes[math.random(#splash_quotes)]
+  for i=1,#quo do
+    screen.move(64, 42 + 8*(i-1))
+    screen.text_center(quo[i])
+  end
+  screen.update()
 end
 
 -- 7. REDRAW
